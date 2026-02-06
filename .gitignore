@@ -1,0 +1,35 @@
+# --- Security & Credentials ---
+.env
+# Never commit your HF_TOKEN!
+token.txt
+token.json
+
+# --- Python & Environments ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+# Mamba/Conda environments often live outside, 
+# but ignore them if they are local
+.local/share/mamba/
+
+# --- Databases ---
+
+# MongoDB (usually handled by system, but ignore local dumps)
+dump/
+
+# --- Model Weights & Large Files ---
+# Don't upload the actual model weights (gigabytes of data)
+models/
+*.bin
+*.pth
+*.onnx
+
+# --- Streamlit & OS ---
+.streamlit/config.toml
+.streamlit/secrets.toml
+.DS_Store
+.idea/
+.vscode/
