@@ -1,25 +1,32 @@
-# ⚕️ Med-Gemma Clinical Assistant
+# 🩺 Med-Gemma AI Assistant
 
-A high-performance, local medical AI assistant built on **CachyOS** using **Google's Med-Gemma-2b**. This application provides a Streamlit-based UI for clinical reasoning and uses **MongoDB** for persistent, document-based chat history.
+A high-performance medical AI backend built with **FastAPI** and **Google's Med-Gemma-2b**. Optimized for low-latency clinical inference and secure data persistence using **MongoDB**.
 
-> **⚠️ MEDICAL DISCLAIMER**: This software is for educational and research purposes only. It is NOT a clinical tool and should NOT be used for diagnosis or treatment. Always consult a licensed healthcare professional.
+
 
 ## 🚀 Key Features
-* **Model**: Med-Gemma-2b (4-bit quantized via bitsandbytes).
-* **High Performance**: Optimized for CachyOS and NVIDIA GPUs (CUDA 12.1).
-* **Persistent Memory**: Uses NoSQL (MongoDB) to store clinical sessions and metadata.
-* **Modern UI**: Streamlit-based chat interface with session management.
 
-## 🛠️ Tech Stack
-* **OS**: CachyOS (Arch-based)
-* **Env Manager**: Mamba (Miniforge)
-* **Inference**: Transformers, Accelerate, BitsAndBytes
-* **Database**: MongoDB (Local)
-* **Frontend**: Streamlit
+* **Asynchronous Inference**: Leverages FastAPI's `async` capabilities to handle multiple requests without blocking.
+* **Medical Domain Expertise**: Powered by `google/med-gemma-2b`, fine-tuned for clinical reasoning.
+* **Persistent Memory**: Automatic conversation logging in NoSQL (MongoDB) for patient history tracking.
+* **Performance Metrics**: Real-time tracking of inference latency and hardware utilization.
+* **Auto-Generated Docs**: Interactive API playground powered by Swagger UI.
 
-## 📦 Installation
+---
 
-1. **Clone the repo**:
+## 🛠 Tech Stack
+
+* **OS**: CachyOS (Arch Linux)
+* **Language**: Python 3.11+
+* **Framework**: FastAPI
+* **Model**: Med-Gemma-2b (via Transformers/BitsAndBytes)
+* **Database**: MongoDB (NoSQL)
+
+---
+
+## 📦 Installation & Setup
+
+1. **Clone the repository**
    ```bash
-   git clone [https://github.com/yourusername/med-gemma-assistant.git](https://github.com/yourusername/med-gemma-assistant.git)
-   cd med-gemma-assistant
+   git clone [https://github.com/your-username/med-gemma-app.git](https://github.com/your-username/med-gemma-app.git)
+   cd med-gemma-app

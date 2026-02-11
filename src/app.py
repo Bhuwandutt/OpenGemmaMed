@@ -18,10 +18,10 @@ with st.spinner("Waking up the medical brain... this may take a moment."):
 
 #Sidebar to access history
 with st.sidebar:
-    st.title("🏥 Clinical History")
+    st.title("Clinical History")
     if st.button("➕ New Consultation"):
         st.session_state.messages = []
-        st.rerun()
+        st.rerun() #S
     
     st.markdown("---")
     st.subheader("Previous Notes")
