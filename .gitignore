@@ -15,6 +15,18 @@ env/
 # but ignore them if they are local
 .local/share/mamba/
 
+
+# --- Node.js / Vue / Vite ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+
 # --- Databases ---
 
 # MongoDB (usually handled by system, but ignore local dumps)
@@ -28,8 +40,9 @@ models/
 *.onnx
 
 # --- Streamlit & OS ---
-.streamlit/config.toml
-.streamlit/secrets.toml
+# --- OS / IDE Specific ---
 .DS_Store
-.idea/
 .vscode/
+.idea/
+*.swp
+*.swo
