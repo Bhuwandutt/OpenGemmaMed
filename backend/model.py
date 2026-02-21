@@ -2,10 +2,11 @@ import os
 import torch
 from dotenv import load_dotenv
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoProcessor
 
-class MedGemmaEngine: # currenty using MedGemma but this class can be scaled to any generic AI model. We can pass the model ID as argument. (To implement lpug and play AI model)
+class MedGemmaEngine: # currenty using MedGemma but this class can be scaled to any generic AI model. We can pass the model ID as argument.
     
-    def __init__(self, model_id="google/medgemma-1.5-4b-it"): #Fuction call after every instance creation
+    def __init__(self, model_id="google/medgemma-1.5-4b-it"): #Fuction call after every instance creation. This prepares the instace for inference call (see "def generate_response()")
 
         load_dotenv()
         self.token = os.getenv("HF_TOKEN")
@@ -20,7 +21,8 @@ class MedGemmaEngine: # currenty using MedGemma but this class can be scaled to 
         else:
             print("RUNNING ON CUDA GPU")
 
-    def initialize(self):
+    def initialize(self): # Loading takes about 30-40 seconds on 7b model. Can make it Lazy @property ??  
+        
         """Loads the tokenizer and model into VRAM."""
         print(f"Initializing {self.model_id}...")
 
@@ -55,26 +57,24 @@ class MedGemmaEngine: # currenty using MedGemma but this class can be scaled to 
         
     #     return streamer
     
-    def generate_response(self, prompt, max_tokens=300):
+    def generate_response(self, prompt, max_tokens=300): # Inference function 
         """Generates medical insights based on user input."""
         if not self.model:
             raise RuntimeError("Model not initialized. Call .initialize() first.")
 
         # Structured prompt for better clinical reasoning
         formatted_prompt = (
-            f"<start_of_turn>user\n"
-            f"You are a medical assistant. Use professional tone.\n{prompt}<end_of_turn>\n"
-            f"<start_of_turn>model\n"
+            f"<start_of_turn>user\n{prompt}<end_of_turn>\n<start_of_turn>model\n<end_of_turn>"
         )
 
         inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.device)
         
-        with torch.no_grad():
+        with torch.inference_mode():
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=max_tokens,
-                temperature=0.2, # Keeps it factual
-                do_sample=True
+                temperature=0.1, # Keeps it factual
+                top_p=0.9
             )
         
         return self.tokenizer.decode(outputs[0], skip_special_tokens=True)

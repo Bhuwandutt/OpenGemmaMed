@@ -6,12 +6,12 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["med_gemma_app"]
 chat_collection = db["conversations"]
 
-def save_chat_turn(query, response, metadata=None, patient_id):
+def save_chat_turn(user_id, query, response, metadata=None ):
     """
     Saves a full exchange as a single document.
     """
     document = {
-        "patient_id": patient_id,
+        "patient_id": user_id,
         "timestamp": datetime.now(),
         "user_input": query,
         "output": response,

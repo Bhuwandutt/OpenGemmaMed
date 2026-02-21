@@ -3,7 +3,7 @@
 # Never commit your HF_TOKEN!
 token.txt
 token.json
-
+notes.md
 # --- Python & Environments ---
 __pycache__/
 *.py[cod]
@@ -39,7 +39,7 @@ models/
 *.pth
 *.onnx
 
-# --- Streamlit & OS ---
+
 # --- OS / IDE Specific ---
 .DS_Store
 .vscode/

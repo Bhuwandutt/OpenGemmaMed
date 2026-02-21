@@ -14,7 +14,7 @@ engine.initialize() #Initilize function to load the model weights into memory
 class Query(BaseModel):
     prompt: str = Field(..., min_length=1, example="What are the symptoms of flu?")
 
-@app.post("/chat/{user_id}")
+@app.post("/ask/{user_id}")
 def ask_medgemma(user_id: str, query: Query):
     start_time = time.time() 
     
@@ -25,7 +25,7 @@ def ask_medgemma(user_id: str, query: Query):
     latency = round(end_time - start_time, 2)
     # Save to MongoDB
     metadata = {"latency": latency, "model": "med-gemma-1.5"}
-    database.save_chat_turn(query.prompt, response, metadata,user_id)
+    save_chat_turn(query.prompt, response, metadata, user_id)
     
     return {
         "user": user_id,
