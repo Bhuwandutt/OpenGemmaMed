@@ -2,7 +2,15 @@ from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel, Field
 from model import MedGemmaEngine
 from database import save_chat_turn, get_patient_history
+from fastapi.responses import StreamingResponse
+from transformers import TextIteratorStreamer
+from threading import Thread
+
+import json 
 import time
+
+from fastapi.responses import StreamingResponse
+
 
 app = FastAPI(title="Med-Gemma API") # Create FastAPI instance called app
 
@@ -15,23 +23,25 @@ class Query(BaseModel):
     prompt: str = Field(..., min_length=1, example="What are the symptoms of flu?")
 
 @app.post("/ask/{user_id}")
-def ask_medgemma(user_id: str, query: Query):
-    start_time = time.time() 
-    
-    # Generate response
-    response = engine.generate_response(query.prompt)
-    
-    end_time = time.time()
-    latency = round(end_time - start_time, 2)
-    # Save to MongoDB
-    metadata = {"latency": latency, "model": "med-gemma-1.5"}
-    save_chat_turn(query.prompt, response, metadata, user_id)
-    
-    return {
-        "user": user_id,
-        "answer": response,
-        "metadata": metadata
-    }
+async def ask_medgemma(user_id: str, query: Query, background_tasks: BackgroundTasks):
+    streamer = engine.stream_response(query.prompt)
+
+    def event_generator():
+        full_response = ""
+        for token in streamer:
+            full_response += token
+            yield token
+        
+        # Once the loop ends, the stream is finished!
+        # Use a BackgroundTask so the user doesn't wait for the DB write
+        background_tasks.add_task(
+            save_chat_turn, 
+            query.prompt, 
+            full_response, 
+            {"model": "med-gemma-1.5", "streamed": True}, 
+            user_id
+        )
+    return StreamingResponse(event_generator(), media_type="text/plain")
 
 @app.get("/history/{patient_id}")
 async def get_history(patient_id: str): # Async helps run concurennt processes 

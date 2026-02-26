@@ -2,8 +2,9 @@ import os
 import torch
 from dotenv import load_dotenv
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-from transformers import AutoProcessor
+from transformers import AutoProcessor,TextIteratorStreamer
 
+from threading import Thread
 class MedGemmaEngine: # currenty using MedGemma but this class can be scaled to any generic AI model. We can pass the model ID as argument.
     
     def __init__(self, model_id="google/medgemma-1.5-4b-it"): #Fuction call after every instance creation. This prepares the instace for inference call (see "def generate_response()")
@@ -44,19 +45,35 @@ class MedGemmaEngine: # currenty using MedGemma but this class can be scaled to 
         )
         print("Model loaded successfully.")
 
-    # def stream_response(self, prompt):
-    #     """Generates tokens one by one for the UI."""
-    #     inputs = self.tokenizer(prompt, return_tensors="pt").to("cuda")
-    #     streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+    def stream_response(self, prompt, max_tokens=512):
+        """Generates tokens one by one for the UI."""
+        if not self.model:
+            raise RuntimeError("Model not initialized.")
+
+        # structured prompt used in generate_response
+        formatted_prompt = f"<start_of_turn>user\n{prompt}<end_of_turn>\n<start_of_turn>model\n"
+
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.device)
         
-    #     generation_kwargs = dict(inputs, streamer=streamer, max_new_tokens=512, temperature=0.2)
+        # 1. Initialize the streamer
+        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
         
-    #     # We run generation in a background thread so the UI doesn't lock up
-    #     thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
-    #     thread.start()
+        # 2. Define the arguments
+        generation_kwargs = dict(
+            **inputs, 
+            streamer=streamer, 
+            max_new_tokens=max_tokens, 
+            temperature=0.1,
+            top_p=0.9
+        )
         
-    #     return streamer
-    
+        # 3. Start generation in a separate thread
+        # This allows the main thread to immediately start yielding tokens
+        thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
+        thread.start()
+        
+        return streamer
+
     def generate_response(self, prompt, max_tokens=300): # Inference function 
         """Generates medical insights based on user input."""
         if not self.model:
