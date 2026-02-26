@@ -1,15 +1,16 @@
 <script setup>
 import { ref } from 'vue'
 
-const prompt = ref('') // Makes object as ref type
-const response = ref('')
+const prompt = ref('') // Makes object as reactive. When value is changed, page is refreshed. 
+const response = ref('') // Can access the data using .value attribute
 const loading = ref(false)
+
 
 const askMedGemma = async () => {
   if (!prompt.value.trim()) return
   
   loading.value = true
-  response.value = '' // Clear previous answer
+  response.value = '' 
   
   try {
     const res = await fetch('http://localhost:8000/ask/default_user', {
@@ -17,11 +18,23 @@ const askMedGemma = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: prompt.value })
     })
-    
-    if (!res.ok) throw new Error('Backend error') // res.ok returns boolean if response was successfull 
-    
-    const data = await res.json()
-    response.value = data.answer
+
+    if (!res.ok) throw new Error('Backend error')
+
+    // 1. Get the stream reader
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+
+    // 2. Read the stream chunk by chunk
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      
+      // 3. Decode the binary chunk into text and append it
+      const chunk = decoder.decode(value, { stream: true })
+      response.value += chunk // This triggers the UI to update instantly
+    }
+    response.value += decoder.decode();
 
   } catch (err) {
     response.value = "⚠️ Connection Error: Ensure your FastAPI server is running on port 8000."
@@ -41,9 +54,10 @@ const askMedGemma = async () => {
 
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
         <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Clinical Query</label>
+<!-- v-model :- Two-way bind the textarea to prompt variable, "askMedGemma" is called on clicking ctr+enter or button -->
         <textarea 
           v-model="prompt"
-          @keydown.enter.ctrl="askMedGemma"
+          @keydown.enter.ctrl="askMedGemma" 
           placeholder="Describe symptoms or paste a lab report summary..."
           class="w-full h-44 bg-slate-950 border border-slate-700 rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all resize-none"
         ></textarea>
@@ -54,7 +68,7 @@ const askMedGemma = async () => {
           class="w-full mt-4 py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3"
         >
           <span v-if="loading" class="animate-pulse">⚡ Processing Inference...</span>
-          <span v-else>Run Clinical Analysis</span>
+          <span v-else>Ask MedGemma</span>
         </button>
       </div>
 
@@ -64,8 +78,13 @@ const askMedGemma = async () => {
             <span class="w-2 h-2 bg-emerald-500 rounded-full"></span> 
             AI CONSULTATION
           </h2>
+          <div 
+          :class="{ 'loading-finished': !loading }"
+          class="prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
+  {{ response }}
+</div>
           <div class="prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
-            {{ response }}
+            {{ response}}
           </div>
         </div>
       </transition>
@@ -74,6 +93,23 @@ const askMedGemma = async () => {
 </template>
 
 <style>
+.prose::after {
+  content: '▋';
+  display: inline-block;
+  vertical-align: middle;
+  animation: blink 1s step-start infinite;
+  margin-left: 4px;
+  color: #10b981; /* emerald-500 */
+}
+
+/* Hide cursor when loading is finished */
+.loading-finished.prose::after {
+  display: none;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
 .fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
