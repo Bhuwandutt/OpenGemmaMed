@@ -18,7 +18,7 @@ A high-performance medical AI backend built with **FastAPI** and **Google's Med-
 
 * **OS**: CachyOS (Arch Linux)
 * **Language**: Python 3.11+
-* **Framework**: FastAPI
+* **Framework**: FastAPI, Vite
 * **Model**: Med-Gemma-2b (via Transformers/BitsAndBytes)
 * **Database**: MongoDB (NoSQL)
 

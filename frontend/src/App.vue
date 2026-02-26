@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const prompt = ref('')
+const prompt = ref('') // Makes object as ref type
 const response = ref('')
 const loading = ref(false)
 
@@ -18,10 +18,11 @@ const askMedGemma = async () => {
       body: JSON.stringify({ prompt: prompt.value })
     })
     
-    if (!res.ok) throw new Error('Backend error')
+    if (!res.ok) throw new Error('Backend error') // res.ok returns boolean if response was successfull 
     
     const data = await res.json()
     response.value = data.answer
+
   } catch (err) {
     response.value = "⚠️ Connection Error: Ensure your FastAPI server is running on port 8000."
   } finally {
@@ -35,7 +36,7 @@ const askMedGemma = async () => {
     <div class="max-w-3xl mx-auto">
       <header class="mb-10 text-center">
         <h1 class="text-4xl font-black text-emerald-500 tracking-tight">MED-GEMMA <span class="text-slate-500 font-light text-xl">v2.0</span></h1>
-        <p class="text-slate-400 mt-2">Specialized Clinical LLM Interface • CachyOS Performance</p>
+        <p class="text-slate-400 mt-2">Specialized Clinical LLM Interface</p>
       </header>
 
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
