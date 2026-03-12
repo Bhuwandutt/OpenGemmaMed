@@ -1,0 +1,55 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────
+#  docker-compose.yml
+#  Starts MongoDB with auth.
+#  The FastAPI backend runs on your HOST (GPU access),
+#  but can optionally be containerized — see the
+#  commented-out "backend" service below.
+# ─────────────────────────────────────────────────
+
+services:
+
+  mongo:
+    image: mongo:7.0
+    container_name: medgemma_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
+      MONGO_INITDB_DATABASE: med_gemma_app
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Optional: containerise the backend too ──────
+  # Uncomment this block if you are NOT running the
+  # backend on the host (note: GPU passthrough needs
+  # the NVIDIA container toolkit installed).
+  #
+  # backend:
+  #   build: ./backend
+  #   container_name: medgemma_backend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   env_file: .env
+  #   depends_on:
+  #     mongo:
+  #       condition: service_healthy
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+
+volumes:
+  mongo_data:

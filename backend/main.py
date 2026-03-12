@@ -1,27 +1,57 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from model import MedGemmaEngine
 from database import save_chat_turn, get_patient_history
-from fastapi.responses import StreamingResponse
-from transformers import TextIteratorStreamer
 from threading import Thread
 
-import json 
-import time
-
-from fastapi.responses import StreamingResponse
 
 
-app = FastAPI(title="Med-Gemma API") # Create FastAPI instance called app
 
-# Initialize Engine globally
-engine = MedGemmaEngine() # __init__ is called to load model configuartion. 
-engine.initialize() #Initilize function to load the model weights into memory
+# --------------------------------------------------------------------------- #
+# Lifespan: load model once at startup, clean up on shutdown
+# --------------------------------------------------------------------------- #
+engine = MedGemmaEngine() # __init__ is called to load model configuartion.
+
+# " When you turn the server off, any code after yield would run (to clean up memory).
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    engine.initialize()
+    yield
+    # teardown (if needed) goes here
 
 
+app = FastAPI(title="Med-Gemma API", lifespan=lifespan)
+
+
+# --------------------------------------------------------------------------- #
+# CORS — allow the Vite dev server (port 5173) and any prod origin you add
+# --------------------------------------------------------------------------- #
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",   # Vite dev server
+        "http://localhost:4173",   # Vite preview
+        # Add your production domain here, e.g. "https://yourapp.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# --------------------------------------------------------------------------- #
+# Schemas
+# --------------------------------------------------------------------------- #
 class Query(BaseModel):
     prompt: str = Field(..., min_length=1, example="What are the symptoms of flu?")
 
+# --------------------------------------------------------------------------- #
+# Routes
+# --------------------------------------------------------------------------- #
 @app.post("/ask/{user_id}")
 async def ask_medgemma(user_id: str, query: Query, background_tasks: BackgroundTasks):
     streamer = engine.stream_response(query.prompt)
@@ -35,11 +65,11 @@ async def ask_medgemma(user_id: str, query: Query, background_tasks: BackgroundT
         # Once the loop ends, the stream is finished!
         # Use a BackgroundTask so the user doesn't wait for the DB write
         background_tasks.add_task(
-            save_chat_turn, 
+            save_chat_turn,
+            user_id, 
             query.prompt, 
             full_response, 
-            {"model": "med-gemma-1.5", "streamed": True}, 
-            user_id
+            {"model": "medgemma-1.5-4b-it", "streamed": True}
         )
     return StreamingResponse(event_generator(), media_type="text/plain")
 

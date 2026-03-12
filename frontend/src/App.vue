@@ -1,43 +1,37 @@
 <script setup>
 import { ref } from 'vue'
 
-const prompt = ref('') // Makes object as reactive. When value is changed, page is refreshed. 
-const response = ref('') // Can access the data using .value attribute
+const prompt = ref('')
+const response = ref('')
 const loading = ref(false)
-
 
 const askMedGemma = async () => {
   if (!prompt.value.trim()) return
-  
+
   loading.value = true
-  response.value = '' 
-  
+  response.value = ''
+
   try {
     const res = await fetch('http://localhost:8000/ask/default_user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt.value })
+      body: JSON.stringify({ prompt: prompt.value }),
     })
 
     if (!res.ok) throw new Error('Backend error')
 
-    // 1. Get the stream reader
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
 
-    // 2. Read the stream chunk by chunk
     while (true) {
       const { value, done } = await reader.read()
       if (done) break
-      
-      // 3. Decode the binary chunk into text and append it
-      const chunk = decoder.decode(value, { stream: true })
-      response.value += chunk // This triggers the UI to update instantly
+      response.value += decoder.decode(value, { stream: true })
     }
-    response.value += decoder.decode();
+    response.value += decoder.decode()
 
-  } catch (err) {
-    response.value = "⚠️ Connection Error: Ensure your FastAPI server is running on port 8000."
+  } catch {
+    response.value = '⚠️ Connection Error: Ensure your FastAPI server is running on port 8000.'
   } finally {
     loading.value = false
   }
@@ -47,25 +41,34 @@ const askMedGemma = async () => {
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-200 font-sans p-4 md:p-12">
     <div class="max-w-3xl mx-auto">
+
       <header class="mb-10 text-center">
-        <h1 class="text-4xl font-black text-emerald-500 tracking-tight">MED-GEMMA <span class="text-slate-500 font-light text-xl">v2.0</span></h1>
+        <h1 class="text-4xl font-black text-emerald-500 tracking-tight">
+          MED-GEMMA <span class="text-slate-500 font-light text-xl">v2.0</span>
+        </h1>
         <p class="text-slate-400 mt-2">Specialized Clinical LLM Interface</p>
       </header>
 
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Clinical Query</label>
-<!-- v-model :- Two-way bind the textarea to prompt variable, "askMedGemma" is called on clicking ctr+enter or button -->
-        <textarea 
+        <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+          Clinical Query
+        </label>
+        <textarea
           v-model="prompt"
-          @keydown.enter.ctrl="askMedGemma" 
+          @keydown.enter.ctrl="askMedGemma"
           placeholder="Describe symptoms or paste a lab report summary..."
-          class="w-full h-44 bg-slate-950 border border-slate-700 rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all resize-none"
+          class="w-full h-44 bg-slate-950 border border-slate-700 rounded-xl p-4 text-lg
+                 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500
+                 outline-none transition-all resize-none"
         ></textarea>
-        
-        <button 
+
+        <button
           @click="askMedGemma"
           :disabled="loading || !prompt"
-          class="w-full mt-4 py-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3"
+          class="w-full mt-4 py-4 bg-emerald-600 hover:bg-emerald-500
+                 disabled:bg-slate-800 disabled:text-slate-600
+                 text-white font-bold rounded-xl transition-all
+                 flex items-center justify-center gap-3"
         >
           <span v-if="loading" class="animate-pulse">⚡ Processing Inference...</span>
           <span v-else>Ask MedGemma</span>
@@ -73,40 +76,35 @@ const askMedGemma = async () => {
       </div>
 
       <transition name="fade">
-        <div v-if="response" class="mt-8 bg-slate-900 border-l-4 border-emerald-500 p-8 rounded-r-2xl shadow-lg">
+        <div v-if="response"
+             class="mt-8 bg-slate-900 border-l-4 border-emerald-500 p-8 rounded-r-2xl shadow-lg">
           <h2 class="text-emerald-500 font-bold mb-4 flex items-center gap-2">
-            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span> 
+            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
             AI CONSULTATION
           </h2>
-          <div 
-          :class="{ 'loading-finished': !loading }"
-          class="prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
-  {{ response }}
-</div>
+          <!-- cursor blinks only while streaming -->
+          <div :class="{ streaming: loading }"
+               class="response-body prose prose-invert max-w-none
+                      text-slate-300 leading-relaxed whitespace-pre-wrap">
+            {{ response }}
+          </div>
         </div>
       </transition>
+
     </div>
   </div>
 </template>
 
 <style>
-.prose::after {
+.response-body.streaming::after {
   content: '▋';
   display: inline-block;
   vertical-align: middle;
   animation: blink 1s step-start infinite;
   margin-left: 4px;
-  color: #10b981; /* emerald-500 */
+  color: #10b981;
 }
-
-/* Hide cursor when loading is finished */
-.loading-finished.prose::after {
-  display: none;
-}
-
-@keyframes blink {
-  50% { opacity: 0; }
-}
+@keyframes blink { 50% { opacity: 0; } }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-from, .fade-leave-to        { opacity: 0; }
 </style>
