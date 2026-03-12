@@ -83,9 +83,6 @@ const askMedGemma = async () => {
           class="prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
   {{ response }}
 </div>
-          <div class="prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
-            {{ response}}
-          </div>
         </div>
       </transition>
     </div>
