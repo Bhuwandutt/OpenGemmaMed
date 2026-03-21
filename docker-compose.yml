@@ -1,55 +1,68 @@
-version: "3.9"
-
-# ─────────────────────────────────────────────────
-#  docker-compose.yml
-#  Starts MongoDB with auth.
-#  The FastAPI backend runs on your HOST (GPU access),
-#  but can optionally be containerized — see the
-#  commented-out "backend" service below.
-# ─────────────────────────────────────────────────
-
 services:
 
-  mongo:
-    image: mongo:7.0
-    container_name: medgemma_mongo
+  # ─── MongoDB ────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: medgemma_db
     restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
-      MONGO_INITDB_DATABASE: med_gemma_app
     volumes:
       - mongo_data:/data/db
+    networks:
+      - medgemma_net
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ── Optional: containerise the backend too ──────
-  # Uncomment this block if you are NOT running the
-  # backend on the host (note: GPU passthrough needs
-  # the NVIDIA container toolkit installed).
-  #
-  # backend:
-  #   build: ./backend
-  #   container_name: medgemma_backend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8000:8000"
-  #   env_file: .env
-  #   depends_on:
-  #     mongo:
-  #       condition: service_healthy
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [gpu]
+  # ─── FastAPI Backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: DockerFile
+    container_name: medgemma_backend
+    restart: unless-stopped
+    env_file: .env                 # supplies HF_TOKEN
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - medgemma_net
+    # GPU pass-through — requires nvidia-container-toolkit on the host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s    # model load takes a while
+
+  # ─── Vue / Nginx Frontend ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: DockerFile
+    container_name: medgemma_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - medgemma_net
 
 volumes:
   mongo_data:
+
+networks:
+  medgemma_net:
+    driver: bridge

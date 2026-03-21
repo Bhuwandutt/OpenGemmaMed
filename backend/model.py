@@ -2,12 +2,7 @@ import os
 import re
 import torch
 from dotenv import load_dotenv
-from transformers import (
-    AutoTokenizer,
-    AutoModelForCausalLM,
-    BitsAndBytesConfig,
-    TextIteratorStreamer,
-)
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig,TextIteratorStreamer
 from threading import Thread
 from typing import Generator, Tuple
 
@@ -124,11 +119,7 @@ class MedGemmaEngine:
         return _clean(raw).strip(), was_truncated
 
     # ------------------------------------------------------------------ #
-    def stream_response(
-        self,
-        prompt: str,
-        max_tokens: int = 1024,
-    ) -> Generator[str, None, None]:
+    def stream_response(self,prompt: str, max_tokens: int = 1024) -> Generator[str, None, None]:
         """
         Yields clean text chunks to the caller.
 

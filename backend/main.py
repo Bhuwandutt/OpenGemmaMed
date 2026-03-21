@@ -7,21 +7,18 @@ from model import MedGemmaEngine
 from database import save_chat_turn, get_patient_history
 from threading import Thread
 
-
-
-
 # --------------------------------------------------------------------------- #
 # Lifespan: load model once at startup, clean up on shutdown
 # --------------------------------------------------------------------------- #
 engine = MedGemmaEngine() # __init__ is called to load model configuartion.
 
-# " When you turn the server off, any code after yield would run (to clean up memory).
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     engine.initialize()
     yield
-    # teardown (if needed) goes here
+    # teardown (if needed) goes here, runs after server shutdown
+
 
 
 app = FastAPI(title="Med-Gemma API", lifespan=lifespan)
@@ -74,8 +71,8 @@ async def ask_medgemma(user_id: str, query: Query, background_tasks: BackgroundT
     return StreamingResponse(event_generator(), media_type="text/plain")
 
 @app.get("/history/{patient_id}")
-async def get_history(patient_id: str): # Async helps run concurennt processes 
-    history = await get_patient_history(patient_id) # await helps run the other function while we wait for response from Database. 
+async def get_history(patient_id: str): 
+    history = await get_patient_history(patient_id) # await helps run the other function while we wait for response from Database.
 
     if not history:
         return {"message": "No history found for this patient", "data": []}
